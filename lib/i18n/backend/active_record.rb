@@ -45,6 +45,33 @@ module I18n
           end
         end
 
+        def reload!
+          @initialized = false
+          @translations = nil
+        end
+
+        def initialized?
+          @initialized ||= false
+        end
+
+        def init_translations
+          @translations = Translation.all.each.with_object({}) do |t, memo|
+            locale_hash = (memo[t.locale.to_sym] ||= {})
+            keys = t.key.split('.')
+            keys.each.with_index.inject(locale_hash) do |iterator, (key_part, index)|
+              key = key_part.to_sym
+              iterator[key] = keys[index + 1] ? (iterator[key] || {}) : t.value
+              iterator[key]
+            end
+          end
+          @initialized = true
+        end
+
+        def translations(do_init: false)
+          init_translations if do_init && !initialized?
+          @translations ||= {}
+        end
+
       protected
 
         def lookup(locale, key, scope = [], options = {})
